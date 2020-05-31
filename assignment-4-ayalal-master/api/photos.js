@@ -5,6 +5,7 @@
 const router = require('express').Router();
 
 const { validateAgainstSchema } = require('../lib/validation');
+const { connectToRabbitMQ, getChannel } = require('../lib/rabbitmq');
 const {
   PhotoSchema,
   insertNewPhoto,
@@ -12,7 +13,9 @@ const {
   saveImageFile,
   saveImageInfo,
   getImageInfoById,
-  getImageDownloadStreamByFilename
+  getImageDownloadStreamByFilename,
+  removeUploadedFile,
+  sendToRabbit
 } = require('../models/photo');
 
 const crypto = require('crypto');
@@ -50,6 +53,9 @@ router.post('/', upload.single('image'), async (req, res) => {
           userId: req.body.userId
         };
         const id = await saveImageFile(image);
+        await removeUploadedFile(req.file);
+        const channel = getChannel();
+        channel.sendToQueue('images', Buffer.from(id.toString()));
         res.status(200).send({ id: id });
       } catch (err) {
         console.error(err);
@@ -77,6 +83,7 @@ router.get('/:id', async (req, res, next) => {
         url: `/photos/media/images/${image.filename}`,
         contentType: image.metadata.contentType,
         userId: image.metadata.userId,
+        size: image.metadata.size
       };
       res.status(200).send(responseBody);
     } else {

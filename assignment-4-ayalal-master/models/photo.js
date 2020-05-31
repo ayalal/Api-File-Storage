@@ -7,6 +7,10 @@ const { ObjectId, GridFSBucket } = require('mongodb');
 const { getDBReference } = require('../lib/mongo');
 const { extractValidFields } = require('../lib/validation');
 
+const rabbitmqHost = process.env.RABBITMQ_HOST || 'localhost';
+const rabbitmqUrl = `amqp://guest:guest@${rabbitmqHost}:5672`;
+const amqp = require('amqplib');
+
 var mongodb = require('mongodb');
 var assert = require('assert');
 var fs = require('fs');
@@ -131,3 +135,52 @@ exports.getImageDownloadStreamByFilename = function (filename) {
   });
   return bucket.openDownloadStreamByName(filename);
 };
+
+function removeUploadedFile(file) {
+  return new Promise((resolve, reject) => {
+    fs.unlink(file.path, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+exports.removeUploadedFile = removeUploadedFile;
+
+exports.getDownloadStreamById = function (id) {
+  const db = getDBReference();
+  const bucket = new GridFSBucket(db, { bucketName: 'images' });
+  if (!ObjectId.isValid(id)) {
+    return null;
+  } else {
+    return bucket.openDownloadStream(new ObjectId(id));
+  }
+};
+
+exports.updateImageSizeById = async function (id, size) {
+  const db = getDBReference();
+  const collection = db.collection('images.files');
+  if (!ObjectId.isValid(id)) {
+    return null;
+  } else {
+    const result = await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { "metadata.size": size }}
+    );
+    return result.matchedCount > 0;
+  }};
+
+
+  async function sendToRabbit(id) {
+    try {
+    const connection = await amqp.connect(rabbitmqUrl);
+    const channel = await connection.createChannel();
+    await channel.assertQueue('echo');
+    channel.sendToQueue('images', Buffer.from(id.toString()));
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  exports.sendToRabbit = sendToRabbit;
