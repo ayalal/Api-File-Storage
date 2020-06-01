@@ -83,7 +83,12 @@ router.get('/:id', async (req, res, next) => {
         url: `/photos/media/images/${image.filename}`,
         contentType: image.metadata.contentType,
         userId: image.metadata.userId,
-        size: image.metadata.size
+        downloads: [`/photos/media/images/${req.params.id}--orig.jpg`,
+        `/photos/media/images/${req.params.id}--1024.jpg`,
+        `/photos/media/images/${req.params.id}--640.jpg`,
+        `/photos/media/images/${req.params.id}--256.jpg`,
+        `/photos/media/images/${req.params.id}--128.jpg`  
+      ]
       };
       res.status(200).send(responseBody);
     } else {

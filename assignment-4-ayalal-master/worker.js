@@ -27,6 +27,26 @@ connectToDB(async () => {
                 console.log(`== Dimensions for image ${id}:`, dimensions);
                 jimp.read(buffer)
                     .then(image => {
+                        if(dimensions.height > 0){
+                            image.write('/usr/src/app/api/uploads/' + id + '--orig.jpg');
+                            const imageToSend = {
+                                contentType: 'image/jpeg',
+                                filename: id + '--orig.jpg',
+                                path: '/usr/src/app/api/uploads/' + id + '--orig.jpg'
+                            };
+                            console.log("image to be saved: " + imageToSend);
+                            saveResizedImageFile(imageToSend);
+                        }
+                        if(dimensions.height > 1024){
+                            image.resize(1024, 1024).write('/usr/src/app/api/uploads/' + id + '--1024.jpg');
+                            const imageToSend = {
+                                contentType: 'image/jpeg',
+                                filename: id + '--1024.jpg',
+                                path: '/usr/src/app/api/uploads/' + id + '--1024.jpg'
+                            };
+                            console.log("image to be saved: " + imageToSend);
+                            saveResizedImageFile(imageToSend);
+                        }
                         if(dimensions.height > 640){
                             image.resize(640, 640).write('/usr/src/app/api/uploads/' + id + '--640.jpg');
                             const imageToSend = {
