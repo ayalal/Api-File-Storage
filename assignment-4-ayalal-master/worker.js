@@ -23,20 +23,44 @@ connectToDB(async () => {
             })
             .on('end', async () => {
                 const buffer = Buffer.concat(imageChunks);
+                const dimensions = sizeOf(Buffer.concat(imageChunks));
+                console.log(`== Dimensions for image ${id}:`, dimensions);
                 jimp.read(buffer)
-                .then(image => {
-                    image.resize(256,256).write('/usr/src/app/api/uploads/'+id+'--256.jpg');
-                    const imageToSend = {
-                        contentType: 'image/jpeg',
-                        filename: id+'--256.jpg',
-                        path: '/usr/src/app/api/uploads/'+id+'--256.jpg'
-                      };
-                    console.log("image to be saved: " + imageToSend);
-                    saveResizedImageFile(imageToSend);
-                })
-                .catch(err => {
-                    console.log(err);
-                });
+                    .then(image => {
+                        if(dimensions.height > 640){
+                            image.resize(640, 640).write('/usr/src/app/api/uploads/' + id + '--640.jpg');
+                            const imageToSend = {
+                                contentType: 'image/jpeg',
+                                filename: id + '--640.jpg',
+                                path: '/usr/src/app/api/uploads/' + id + '--640.jpg'
+                            };
+                            console.log("image to be saved: " + imageToSend);
+                            saveResizedImageFile(imageToSend);
+                        }
+                        if (dimensions.height > 256) {
+                            image.resize(256, 256).write('/usr/src/app/api/uploads/' + id + '--256.jpg');
+                            const imageToSend = {
+                                contentType: 'image/jpeg',
+                                filename: id + '--256.jpg',
+                                path: '/usr/src/app/api/uploads/' + id + '--256.jpg'
+                            };
+                            console.log("image to be saved: " + imageToSend);
+                            saveResizedImageFile(imageToSend);
+                        }
+                        if (dimensions.height > 128) {
+                            image.resize(128, 128).write('/usr/src/app/api/uploads/' + id + '--128.jpg');
+                            const imageToSend = {
+                                contentType: 'image/jpeg',
+                                filename: id + '--128.jpg',
+                                path: '/usr/src/app/api/uploads/' + id + '--128.jpg'
+                            };
+                            console.log("image to be saved: " + imageToSend);
+                            saveResizedImageFile(imageToSend);
+                        }
+                    })
+                    .catch(err => {
+                        console.log(err);
+                    });
             });
         channel.ack(msg);
     });
