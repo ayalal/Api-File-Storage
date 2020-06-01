@@ -111,6 +111,31 @@ exports.saveImageFile = async function (image) {
   });
 };
 
+
+exports.saveResizedImageFile = async function (image) {
+  return new Promise((resolve, reject) => {
+    const db = getDBReference();
+    const bucket = new GridFSBucket(db, {
+      bucketName: 'images'
+    });
+    const metadata = {
+      contentType: image.contentType
+    };
+
+    const uploadStream = bucket.openUploadStream(
+      image.filename,
+      { metadata: metadata }
+    );
+    fs.createReadStream(image.path).pipe(uploadStream)
+      .on('error', (err) => {
+        reject(err);
+      })
+      .on('finish', (result) => {
+        resolve(result._id);
+      });
+  });
+};
+
 exports.getImageInfoById = async function (id) {
   const db = getDBReference();
   const bucket = new GridFSBucket(db, {
@@ -158,6 +183,13 @@ exports.getDownloadStreamById = function (id) {
     return bucket.openDownloadStream(new ObjectId(id));
   }
 };
+
+function getImageDownloadStreamByFilename(filename) {
+  const db = getDBReference();
+  const bucket = new mongodb.GridFSBucket(db, { bucketName: 'images' });
+  return bucket.openDownloadStreamByName(filename);
+}
+exports.getImageDownloadStreamByFilename = getImageDownloadStreamByFilename;
 
 exports.updateImageSizeById = async function (id, size) {
   const db = getDBReference();

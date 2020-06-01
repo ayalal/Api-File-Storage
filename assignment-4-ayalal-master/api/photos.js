@@ -52,8 +52,8 @@ router.post('/', upload.single('image'), async (req, res) => {
           path: req.file.path,
           userId: req.body.userId
         };
+        console.log(req.file);
         const id = await saveImageFile(image);
-        await removeUploadedFile(req.file);
         const channel = getChannel();
         channel.sendToQueue('images', Buffer.from(id.toString()));
         res.status(200).send({ id: id });
@@ -95,6 +95,23 @@ router.get('/:id', async (req, res, next) => {
       error: "Unable to fetch photo.  Please try again later."
     });
   }
+});
+
+
+router.get('/media/images/:filename', (req, res, next) => {
+  console.log("Download request");
+  getImageDownloadStreamByFilename(req.params.filename)
+    .on('file', (file) => {
+      res.status(200).type(file.metadata.contentType);
+    })
+    .on('error', (err) => {
+      if (err.code === 'ENOENT') {
+        next();
+      } else {
+        next(err);
+      }
+    })
+    .pipe(res);
 });
 
 module.exports = router;
